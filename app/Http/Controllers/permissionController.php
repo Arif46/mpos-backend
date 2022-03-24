@@ -1,0 +1,79 @@
+<?php
+
+namespace App\Http\Controllers;
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use Spatie\Permission\Models\Permission;
+use App\Http\Validations\PermissionValidation;
+use DB;
+use Exception;
+
+class permissionController extends Controller
+{
+    
+    public function index(Request $request)
+    {
+        try {
+            $query = Permission::query();
+            if ($request->name) {
+                $query->where('name', $request->name);
+            }
+            $data = $query->orderBy('id','DESC')->paginate(10);
+            return respondWithSuccess('Users fetched successfully', $data, 200);
+        } catch (\Exception $e) {
+            return respondWithSuccess($e->message(), [], 500);
+        }
+        
+    }
+
+    public function store(Request $request)
+    {
+        $vaidator = PermissionValidation::validate($request);
+        if (!$vaidator['success']) {
+            return response($vaidator);
+        }
+
+        try {
+
+            $model = Permission::create($request->all());
+            return respondWithSuccess('Permission create successfully', $model, 200);
+
+        } catch (PDOException $e) {
+            return respondWithError($e->getMessage(), 500);
+        }
+    }
+
+    public function update(Request $request, $id)
+    {
+        $vaidator = PermissionValidation::validate($request, $id);
+        if (!$vaidator['success']) {
+            return response($vaidator);
+        }
+
+        try {
+            $model = Permission::find($id);
+            $model->update($request->all());
+            return respondWithSuccess('Permission update successfully', $model, 200);
+
+        } catch (PDOException $e) {
+            return respondWithError($e->getMessage(), 500);
+        }
+    }
+
+
+    
+    public function destroy($id)
+    {
+        try {
+            $model = Permission::find($id);
+            $model->status = $model->status == 1 ? 0 : 1; 
+            $model->save();
+            $message = $model->status == 1 ? 'Permission active successfully.' : 'Permission inactive successfully.'; 
+            return respondWithSuccess($message, $model, 200);
+
+        } catch (PDOException $e) {
+            return respondWithError($e->getMessage(), 500);
+        }
+    }
+   
+}
